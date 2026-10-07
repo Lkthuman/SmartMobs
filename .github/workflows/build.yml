@@ -1,0 +1,51 @@
+name: Build SmartMobs
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up JDK 21
+      uses: actions/setup-java@v3
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+    
+    - name: Build with Gradle
+      run: |
+        chmod +x ./gradlew
+        ./gradlew build
+    
+    - name: Upload JAR to Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: SmartMobs-JAR
+        path: build/libs/SmartMobs-1.0.0.jar
+    
+    - name: Create Release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref_name }}
+        release_name: Release ${{ github.ref_name }}
+        body: 'SmartMobs mod for Minecraft 1.21.1'
+        draft: false
+        prerelease: false
+    
+    - name: Upload JAR to Release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: build/libs/SmartMobs-1.0.0.jar
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
