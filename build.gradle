@@ -1,12 +1,10 @@
 plugins {
     id 'java'
-    id 'net.neoforged.gradle.userdev' version '7.0.80'
-    id 'org.spongepowered.mixin' version '0.7.+'
+    id 'net.neoforged.gradle' version '7.0.79'
 }
 
-version = '1.0.0'
 group = 'com.smartmobs'
-archivesBaseName = 'SmartMobs'
+version = '1.0.0'
 
 java {
     sourceCompatibility = JavaVersion.VERSION_21
@@ -14,33 +12,17 @@ java {
 }
 
 repositories {
-    mavenLocal()
+    mavenCentral()
     maven {
-        name = 'NeoForged'
-        url = 'https://maven.neoforged.net/releases'
-    }
-    maven {
-        name = 'Maven Central'
-        url = 'https://repo1.maven.org/maven2'
+        name = "NeoForged"
+        url = "https://maven.neoforged.net/releases"
     }
 }
 
 dependencies {
-    implementation 'net.neoforged:neoforge:21.1.0'
+    implementation 'net.neoforged:neoforge:21.1.59'
 }
 
-tasks.named('jar', Jar).configure {
-    manifest {
-        attributes([
-            'Specification-Title'      : 'SmartMobs',
-            'Specification-Vendor'     : 'SmartMobs Team',
-            'Specification-Version'    : '1',
-            'Implementation-Title'     : project.name,
-            'Implementation-Version'   : project.version,
-            'Implementation-Vendor'    : 'SmartMobs Team',
-            'Implementation-Timestamp' : new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
-            'Created-By'               : "Gradle ${gradle.gradleVersion}",
-            'Build-Jdk'                : System.getProperty('java.version'),
-        ])
-    }
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
 }

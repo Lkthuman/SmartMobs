@@ -1,34 +1,13 @@
-modLoader="javafml"
-loaderVersion="[21,)"
+modLoader="neoforge"
+loaderVersion="[1,)"
 license="MIT"
+issueTrackerURL="https://github.com/Lkthuman/SmartMobs/issues"
 
 [[mods]]
 modId="smartmobs"
-version="1.0.0"
 displayName="SmartMobs"
-displayURL="https://github.com/Lkthuman/SmartMobs"
-logoFile="logo.png"
-credits="SmartMobs Development Team"
+credits="Developed by Lkthuman"
 authors="Lkthuman"
-description="""SmartMobs adds adaptive AI to Minecraft mobs. Mobs learn from player behavior and adapt their strategies accordingly.
-
-Features:
-- Progressive learning system
-- Visible adaptations
-- Memory persistence
-- Fair and balanced gameplay
-- Multiplayer compatible"""
-
-[[dependencies.smartmobs]]
-    modId="minecraft"
-    mandatory=true
-    versionRange="[1.21.1,1.22)"
-    ordering="NONE"
-    side="BOTH"
-
-[[dependencies.smartmobs]]
-    modId="neoforge"
-    mandatory=true
-    versionRange="[21,)"
-    ordering="NONE"
-    side="BOTH"
+displayURL="https://github.com/Lkthuman/SmartMobs"
+description="A Minecraft mod that makes mobs smarter and more challenging"
+version="1.0.0"
