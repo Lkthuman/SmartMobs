@@ -14,60 +14,38 @@
 ## 📦 Installation
 
 ### Prérequis
+
 - Minecraft 1.21.1
-- NeoForge 1.21.1
+- NeoForge 21.1.0 ou supérieur
+- Java 21
 
 ### Étapes
+
 1. Télécharge le JAR depuis les [Releases](https://github.com/Lkthuman/SmartMobs/releases)
 2. Place le fichier JAR dans ton dossier `mods`
 3. Lance Minecraft avec NeoForge
 4. Profite ! 🎮
 
-## 🎮 Comment Tester
+## 🛠️ Compilation
 
-Vois [TESTING_GUIDE.md](TESTING_GUIDE.md) pour un guide complet de test.
+### Depuis Windows
 
-## ⚙️ Configuration
-
-La configuration se trouve dans : `config/smartmobs.json`
-
-### Paramètres Principaux
-```json
-{
-  "enabled": true,
-  "learningSpeed": 0.5,
-  "maxAdaptationLevel": 3,
-  "debugMode": false
-}
+```bash
+gradlew.bat build
 ```
 
-## 💻 Commandes
-
-- `/smartmobs debug` - Affiche les infos de debug
-- `/smartmobs stats` - Affiche les statistiques
-- `/smartmobs reload` - Recharge la config
-- `/smartmobs reset` - Réinitialise les données
-
-## 📚 Documentation
-
-- [Guide de Test](TESTING_GUIDE.md) - Comment tester le mod
-- [Architecture](ARCHITECTURE.md) - Structure du code
-- [Changelog](CHANGELOG.md) - Histoire des versions
-
-## 🛠️ Développement
-
-Pour compiler le mod :
+### Depuis Linux/Mac
 
 ```bash
 ./gradlew build
 ```
 
-Le JAR final sera dans `build/libs/`
+Le JAR compilé se trouvera dans `build/libs/SmartMobs-1.0.0.jar`
 
-## 📄 Licence
+## 📋 Licence
 
-MIT License - Voir [LICENSE](LICENSE)
+MIT License - Voir [LICENSE](LICENSE) pour plus de détails.
 
-## 👤 Auteur
+## 🤝 Contribution
 
-Développé pour offrir une expérience Minecraft plus immersive.
+Les contributions sont bienvenues ! Fais un fork, crée une branche et soumets une pull request.

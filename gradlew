@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/bin/sh
 
 # Copyright 2015 the original author or authors.
 #
@@ -15,13 +15,23 @@
 # limitations under the License.
 #
 
-APP_NAME="Gradle"
-APP_BASE_NAME=gradle
-APP_HOME=$(cd "$(dirname "$0")" && pwd -P) || exit
+app_path=$( cd "${app_path%/*}" && pwd -P ) || exit
 
-APP_JAR="$APP_HOME/.gradle/wrapper/gradle-wrapper.jar"
-if [ ! -f "$APP_JAR" ]; then
-  mkdir -p "$APP_HOME/.gradle/wrapper"
+app_name="Gradle"
+app_jar="gradle-wrapper.jar"
+
+case "$0" in
+    *cygwin) ;;
+    *) app_path=$( cygpath --path --mixed "$app_path" ) ;;
+esac
+
+DEFAULT_JVM_OPTS='" -Dfile.encoding=UTF-8 "'
+Java_HOME="$JAVA_HOME"
+
+if [ -z "$JAVA_HOME" ] ; then
+    JAVA_EXE='java'
+else
+    JAVA_EXE="$JAVA_HOME/bin/java"
 fi
 
-exec java -jar "$APP_JAR" "$@"
+exec "$JAVA_EXE" -cp "$app_path/gradle/wrapper/gradle-wrapper.jar" "org.gradle.wrapper.GradleWrapperMain" "$@"
