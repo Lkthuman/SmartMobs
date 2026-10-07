@@ -1,0 +1,39 @@
+{
+  "mod_name": "Smart Mobs",
+  "version": "1.0.0",
+  "release_date": "2026-10-07",
+  "minecraft_version": "1.21.1",
+  "mod_loader": "NeoForge",
+  "mod_loader_version": "21.1.172+",
+  "java_version": "21+",
+  "dependencies": [
+    {
+      "name": "NeoForge",
+      "version": "21.1.172",
+      "type": "required"
+    }
+  ],
+  "categories": [
+    "Gameplay",
+    "Mobs",
+    "Difficulty",
+    "AI"
+  ],
+  "features": [
+    "Adaptive AI",
+    "Learning Behaviors",
+    "Visible Animations",
+    "Configurable Difficulty",
+    "Multiplayer Support",
+    "Performance Optimized"
+  ],
+  "supported_mobs": 11,
+  "behavioral_strategies": 9,
+  "animations": 16,
+  "file_size_mb": 2.4,
+  "release_type": "release",
+  "is_complete": true,
+  "github_url": "https://github.com/Lkthuman/SmartMobs",
+  "issues_url": "https://github.com/Lkthuman/SmartMobs/issues",
+  "license": "MIT"
+}
