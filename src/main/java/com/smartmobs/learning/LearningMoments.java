@@ -1,37 +1,105 @@
 package com.smartmobs.learning;
 
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.PathfinderMob;
 
-/** Visible, vanilla-compatible reactions: pause, head turn, look-around, arm swing. */
-public final class LearningMoments {
-    private LearningMoments() {}
-
-    /** Mob stops and stares at its target. */
-    public static void observe(PathfinderMob mob, LivingEntity target) {
-        mob.getNavigation().stop();
-        mob.getLookControl().setLookAt(target, 30.0F, 30.0F);
-    }
-
-    /** Mob scans its surroundings by sweeping its look direction. */
-    public static void lookAround(PathfinderMob mob, int ticksElapsed) {
-        double angle = Math.toRadians((ticksElapsed * 18) % 360);
-        double x = mob.getX() + Math.cos(angle) * 4.0;
-        double z = mob.getZ() + Math.sin(angle) * 4.0;
-        mob.getLookControl().setLookAt(x, mob.getEyeY() - 0.3, z);
-    }
-
-    /** Subtle "realisation" cue: arm swing and a few vanilla particles. */
-    public static void realise(PathfinderMob mob, LivingEntity target) {
-        mob.getNavigation().stop();
-        mob.getLookControl().setLookAt(target, 40.0F, 40.0F);
-        mob.swing(InteractionHand.MAIN_HAND);
-        if (mob.level() instanceof ServerLevel level) {
-            level.sendParticles(ParticleTypes.HAPPY_VILLAGER,
-                    mob.getX(), mob.getEyeY() + 0.4, mob.getZ(), 3, 0.2, 0.1, 0.2, 0.0);
+public class LearningMoments {
+    
+    /**
+     * Animation quand le mob observe le joueur
+     */
+    public static void observationAnimation(Mob mob, Player player) {
+        if (mob.level() instanceof ServerLevel serverLevel) {
+            mob.getLookControl().setLookAt(
+                player.getX(),
+                player.getEyeY(),
+                player.getZ()
+            );
+            
+            // Petites particules autour de la tête du mob
+            for (int i = 0; i < 2; i++) {
+                serverLevel.sendParticles(
+                    ParticleTypes.SMALL_FLAME,
+                    mob.getX() + (Math.random() - 0.5) * 0.5,
+                    mob.getEyeY() + (Math.random() - 0.5) * 0.2,
+                    mob.getZ() + (Math.random() - 0.5) * 0.5,
+                    1, 0, 0, 0, 0.05
+                );
+            }
         }
+    }
+    
+    /**
+     * Animation quand le mob a une idée/adaptation
+     */
+    public static void adaptationFlashAnimation(Mob mob) {
+        if (mob.level() instanceof ServerLevel serverLevel) {
+            // Particules autour du mob pour montrer qu'il a compris
+            for (int i = 0; i < 5; i++) {
+                double angle = (i / 5.0) * Math.PI * 2;
+                double x = mob.getX() + Math.cos(angle) * 0.8;
+                double z = mob.getZ() + Math.sin(angle) * 0.8;
+                
+                serverLevel.sendParticles(
+                    ParticleTypes.HAPPY_VILLAGER,
+                    x, mob.getEyeY(), z,
+                    1, 0.2, 0.2, 0.2, 0.1
+                );
+            }
+            
+            // Swing du bras/tête du mob
+            mob.swing(mob.getUsedItemHand());
+        }
+    }
+    
+    /**
+     * Animation de recherche/scanning
+     */
+    public static void searchAnimation(Mob mob) {
+        if (mob.level() instanceof ServerLevel serverLevel) {
+            // Le mob tourne la tête dans plusieurs directions
+            float originalYRot = mob.getYRot();
+            for (int i = 0; i < 3; i++) {
+                float newRot = originalYRot + (i - 1) * 30f;
+                // Particules de recherche
+                for (int j = 0; j < 2; j++) {
+                    serverLevel.sendParticles(
+                        ParticleTypes.MYCELIUM,
+                        mob.getX() + Math.cos(Math.toRadians(newRot)) * 1.5,
+                        mob.getEyeY(),
+                        mob.getZ() + Math.sin(Math.toRadians(newRot)) * 1.5,
+                        1, 0.1, 0.1, 0.1, 0.05
+                    );
+                }
+            }
+        }
+    }
+    
+    /**
+     * Animation d'échec/frustration
+     */
+    public static void failureAnimation(Mob mob) {
+        if (mob.level() instanceof ServerLevel serverLevel) {
+            // Particules rouges autour du mob
+            for (int i = 0; i < 4; i++) {
+                serverLevel.sendParticles(
+                    ParticleTypes.SMOKE,
+                    mob.getX() + (Math.random() - 0.5) * 1.0,
+                    mob.getEyeY() + (Math.random() - 0.5) * 0.3,
+                    mob.getZ() + (Math.random() - 0.5) * 1.0,
+                    1, 0, 0, 0, 0.08
+                );
+            }
+        }
+    }
+    
+    /**
+     * Animation d'attaque/placement de bloc
+     */
+    public static void actionAnimation(Mob mob) {
+        mob.swing(mob.getUsedItemHand());
     }
 }
