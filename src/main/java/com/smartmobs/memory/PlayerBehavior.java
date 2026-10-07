@@ -2,71 +2,81 @@ package com.smartmobs.memory;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.util.Mth;
+import net.minecraft.nbt.CompoundTag;
 
-/** Normalized (0..1) observations about one player. Immutable-ish, tiny to serialize. */
-public final class PlayerBehavior {
-    public static final Codec<PlayerBehavior> CODEC = RecordCodecBuilder.create(i -> i.group(
-            Codec.FLOAT.fieldOf("melee").forGetter(p -> p.melee),
-            Codec.FLOAT.fieldOf("ranged").forGetter(p -> p.ranged),
-            Codec.FLOAT.fieldOf("building").forGetter(p -> p.building),
-            Codec.FLOAT.fieldOf("highGround").forGetter(p -> p.highGround),
-            Codec.FLOAT.fieldOf("easyKills").forGetter(p -> p.easyKills)
-    ).apply(i, PlayerBehavior::new));
-
-    public enum Stat { MELEE, RANGED, BUILDING, HIGH_GROUND, EASY_KILLS }
-
-    private float melee, ranged, building, highGround, easyKills;
-
-    public PlayerBehavior() {}
-
-    private PlayerBehavior(float melee, float ranged, float building, float highGround, float easyKills) {
-        this.melee = clamp(melee);
-        this.ranged = clamp(ranged);
-        this.building = clamp(building);
-        this.highGround = clamp(highGround);
-        this.easyKills = clamp(easyKills);
+public class PlayerBehavior {
+    
+    private float meleeUsage = 0.0f;
+    private float rangedUsage = 0.0f;
+    private float projectileUsage = 0.0f;
+    private float buildingUsage = 0.0f;
+    private float highGroundUsage = 0.0f;
+    private float easyKillsUsage = 0.0f;
+    private float preferredCombatDistance = 3.0f;
+    
+    public static final Codec<PlayerBehavior> CODEC = RecordCodecBuilder.create(instance =>
+        instance.group(
+            Codec.FLOAT.fieldOf("melee").forGetter(PlayerBehavior::getMeleeUsage),
+            Codec.FLOAT.fieldOf("ranged").forGetter(PlayerBehavior::getRangedUsage),
+            Codec.FLOAT.fieldOf("projectile").forGetter(PlayerBehavior::getProjectileUsage),
+            Codec.FLOAT.fieldOf("building").forGetter(PlayerBehavior::getBuildingUsage),
+            Codec.FLOAT.fieldOf("highGround").forGetter(PlayerBehavior::getHighGroundUsage),
+            Codec.FLOAT.fieldOf("easyKills").forGetter(PlayerBehavior::getEasyKillsUsage)
+        ).apply(instance, (m, r, p, b, h, e) -> {
+            PlayerBehavior pb = new PlayerBehavior();
+            pb.meleeUsage = m;
+            pb.rangedUsage = r;
+            pb.projectileUsage = p;
+            pb.buildingUsage = b;
+            pb.highGroundUsage = h;
+            pb.easyKillsUsage = e;
+            return pb;
+        })
+    );
+    
+    public void increaseMeleeUsage() {
+        meleeUsage = Math.min(1.0f, meleeUsage + 0.1f);
     }
-
-    private static float clamp(float v) { return Mth.clamp(Float.isNaN(v) ? 0f : v, 0f, 1f); }
-
-    public float get(Stat s) {
-        return switch (s) {
-            case MELEE -> melee;
-            case RANGED -> ranged;
-            case BUILDING -> building;
-            case HIGH_GROUND -> highGround;
-            case EASY_KILLS -> easyKills;
-        };
+    
+    public void increaseRangedUsage() {
+        rangedUsage = Math.min(1.0f, rangedUsage + 0.1f);
     }
-
-    private void set(Stat s, float v) {
-        v = clamp(v);
-        switch (s) {
-            case MELEE -> melee = v;
-            case RANGED -> ranged = v;
-            case BUILDING -> building = v;
-            case HIGH_GROUND -> highGround = v;
-            case EASY_KILLS -> easyKills = v;
-        }
+    
+    public void increaseProjectileUsage() {
+        projectileUsage = Math.min(1.0f, projectileUsage + 0.1f);
     }
-
-    /** Slowly pushes a stat toward 1 (diminishing returns near the cap). */
-    public void observe(Stat s, float amount) {
-        float cur = get(s);
-        set(s, cur + amount * (1f - cur));
+    
+    public void increaseBuildingUsage() {
+        buildingUsage = Math.min(1.0f, buildingUsage + 0.1f);
     }
-
-    /** Multiplicative decay applied to every stat. */
-    public void decay(float factor) {
-        for (Stat s : Stat.values()) set(s, get(s) * factor);
+    
+    public void increaseHighGroundUsage() {
+        highGroundUsage = Math.min(1.0f, highGroundUsage + 0.1f);
     }
-
-    public void reset() {
-        for (Stat s : Stat.values()) set(s, 0f);
+    
+    public void increaseEasyKillsUsage() {
+        easyKillsUsage = Math.min(1.0f, easyKillsUsage + 0.1f);
     }
-
-    public PlayerBehavior copy() {
-        return new PlayerBehavior(melee, ranged, building, highGround, easyKills);
+    
+    public void decay(float speed) {
+        float decay = 0.01f * speed;
+        meleeUsage = Math.max(0.0f, meleeUsage - decay);
+        rangedUsage = Math.max(0.0f, rangedUsage - decay);
+        projectileUsage = Math.max(0.0f, projectileUsage - decay);
+        buildingUsage = Math.max(0.0f, buildingUsage - decay);
+        highGroundUsage = Math.max(0.0f, highGroundUsage - decay);
+        easyKillsUsage = Math.max(0.0f, easyKillsUsage - decay);
+    }
+    
+    public float getMeleeUsage() { return meleeUsage; }
+    public float getRangedUsage() { return rangedUsage; }
+    public float getProjectileUsage() { return projectileUsage; }
+    public float getBuildingUsage() { return buildingUsage; }
+    public float getHighGroundUsage() { return highGroundUsage; }
+    public float getEasyKillsUsage() { return easyKillsUsage; }
+    public float getPreferredCombatDistance() { return preferredCombatDistance; }
+    
+    public void setPreferredCombatDistance(float distance) {
+        this.preferredCombatDistance = Math.max(0.5f, distance);
     }
 }
