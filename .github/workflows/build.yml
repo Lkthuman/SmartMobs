@@ -11,20 +11,26 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v4
-    
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
     - name: Set up JDK 21
-      uses: actions/setup-java@v4
+      uses: actions/setup-java@v5
       with:
         java-version: '21'
         distribution: 'temurin'
-    
+        cache: gradle
+      
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+      
     - name: Build with Gradle
-      run: chmod +x gradlew && ./gradlew build
-    
-    - name: Upload JAR as artifact
+      run: ./gradlew build
+      
+    - name: Upload JAR artifact
+      if: success()
       uses: actions/upload-artifact@v4
       with:
         name: SmartMobs-JAR
-        path: build/libs/SmartMobs-*.jar
+        path: build/libs/SmartMobs-1.0.0.jar
         retention-days: 30
