@@ -7,6 +7,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
 import com.smartmobs.adaptation.StrategyType;
 import com.smartmobs.learning.LearningMoments;
+import com.smartmobs.learning.AdvancedAnimations;
 
 public class BuildUpStrategy extends AbstractAdaptationStrategy {
     
@@ -14,6 +15,7 @@ public class BuildUpStrategy extends AbstractAdaptationStrategy {
     private final int MAX_BLOCKS = 8;
     private BlockPos targetBlock = null;
     private int searchCooldown = 0;
+    private int blockPlacementCooldown = 0;
     
     public BuildUpStrategy() {
         super(StrategyType.BUILD_UP, 2, 500);
@@ -23,13 +25,19 @@ public class BuildUpStrategy extends AbstractAdaptationStrategy {
     @Override
     public boolean canActivate(Mob mob, Player target) {
         // Activé si le joueur est en hauteur et inaccessible
-        return (target.getY() - mob.getY()) > 2.0 && !mob.getNavigation().isStuck();
+        return (target.getY() - mob.getY()) > 2.0;
     }
     
     @Override
     public void execute(Mob mob, Player target) {
         incrementActiveDuration();
         searchCooldown++;
+        blockPlacementCooldown++;
+        
+        // Animation de réflexion au début
+        if (activeDuration == 1) {
+            AdvancedAnimations.thinkingAnimation(mob);
+        }
         
         // Chercher un bloc à utiliser
         if (searchCooldown > 20 || targetBlock == null) {
@@ -37,7 +45,7 @@ public class BuildUpStrategy extends AbstractAdaptationStrategy {
             searchCooldown = 0;
             
             if (targetBlock != null) {
-                LearningMoments.adaptationFlashAnimation(mob);
+                AdvancedAnimations.discoveryAnimation(mob);
             }
         }
         
@@ -45,15 +53,16 @@ public class BuildUpStrategy extends AbstractAdaptationStrategy {
             // Aller vers le bloc
             double distToBlock = mob.distanceTo(Vec3.atCenterOf(targetBlock));
             
-            if (distToBlock < 2.0) {
+            if (distToBlock < 2.0 && blockPlacementCooldown > 10) {
                 // Placer le bloc sous le mob
                 BlockPos placementPos = mob.blockPosition().below();
                 if (mob.level().getBlockState(placementPos).getMaterial().isReplaceable()) {
                     mob.level().setBlockAndUpdate(placementPos, Blocks.COBBLESTONE.defaultBlockState());
                     blocksPlaced++;
+                    blockPlacementCooldown = 0;
                     
                     // Animer l'action
-                    LearningMoments.actionAnimation(mob);
+                    AdvancedAnimations.blockPlaceAnimation(mob);
                     
                     // Trouver un nouveau bloc après placement
                     targetBlock = findNearestPickableBlock(mob);
@@ -63,15 +72,16 @@ public class BuildUpStrategy extends AbstractAdaptationStrategy {
                 LearningMoments.searchAnimation(mob);
                 mob.getNavigation().moveTo(targetBlock.getX() + 0.5, targetBlock.getY() + 0.5, targetBlock.getZ() + 0.5, 1.0);
             }
-        } else {
+        } else if (blocksPlaced >= MAX_BLOCKS) {
             // Monter vers le joueur une fois assez de blocs placés
+            AdvancedAnimations.prepareActionAnimation(mob);
             mob.getNavigation().moveTo(target.getX(), target.getY(), target.getZ(), 1.1);
         }
     }
     
     @Override
     public boolean shouldContinue(Mob mob, Player target) {
-        return (target.getY() - mob.getY()) > 0.5 && activeDuration < maxActiveDuration && blocksPlaced < MAX_BLOCKS;
+        return (target.getY() - mob.getY()) > 0.5 && activeDuration < maxActiveDuration && blocksPlaced < MAX_BLOCKS + 2;
     }
     
     @Override
@@ -80,6 +90,7 @@ public class BuildUpStrategy extends AbstractAdaptationStrategy {
         blocksPlaced = 0;
         targetBlock = null;
         searchCooldown = 0;
+        blockPlacementCooldown = 0;
     }
     
     private BlockPos findNearestPickableBlock(Mob mob) {
