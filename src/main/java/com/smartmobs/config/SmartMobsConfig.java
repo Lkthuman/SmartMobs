@@ -1,53 +1,78 @@
 package com.smartmobs.config;
 
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 import net.neoforged.neoforge.common.ModConfigSpec;
+import org.apache.commons.lang3.tuple.Pair;
 
-public final class SmartMobsConfig {
-    public static final ModConfigSpec SPEC;
-
-    private static final ModConfigSpec.BooleanValue ENABLED;
-    private static final ModConfigSpec.DoubleValue LEARNING_SPEED;
-    private static final ModConfigSpec.DoubleValue FORGETTING_SPEED;
-    private static final ModConfigSpec.IntValue MAX_LEVEL;
-    private static final ModConfigSpec.ConfigValue<List<? extends String>> MOBS;
-    private static final ModConfigSpec.DoubleValue DIFFICULTY;
-    private static final ModConfigSpec.IntValue OBSERVATION_RANGE;
-    private static final ModConfigSpec.BooleanValue PERSISTENT;
-    private static final ModConfigSpec.BooleanValue DEBUG;
-
-    static {
-        ModConfigSpec.Builder b = new ModConfigSpec.Builder();
-        ENABLED = b.comment("Enable the learning system").define("enabled", true);
-        LEARNING_SPEED = b.comment("Learning speed multiplier").defineInRange("learningSpeed", 1.0, 0.1, 5.0);
-        FORGETTING_SPEED = b.comment("Forgetting speed multiplier (decay per minute)").defineInRange("forgettingSpeed", 1.0, 0.0, 5.0);
-        MAX_LEVEL = b.comment("Maximum adaptation level (0-3)").defineInRange("maxAdaptationLevel", 3, 0, 3);
-        MOBS = b.comment("Entity ids affected").defineListAllowEmpty("affectedMobs",
-                List.of("minecraft:zombie", "minecraft:skeleton", "minecraft:creeper", "minecraft:spider",
-                        "minecraft:enderman", "minecraft:drowned", "minecraft:husk", "minecraft:stray",
-                        "minecraft:pillager", "minecraft:vindicator", "minecraft:witch"),
-                () -> "minecraft:zombie", o -> o instanceof String);
-        DIFFICULTY = b.comment("Adaptation strength multiplier").defineInRange("adaptationDifficulty", 1.0, 0.0, 2.0);
-        OBSERVATION_RANGE = b.comment("Max distance (blocks) a mob can observe a player to learn from").defineInRange("observationRange", 32, 8, 128);
-        PERSISTENT = b.comment("Persist memory between sessions").define("persistentMemory", true);
-        DEBUG = b.comment("Debug mode").define("debug", false);
-        SPEC = b.build();
+public class SmartMobsConfig {
+    
+    public static class CommonConfig {
+        public final ModConfigSpec.BooleanValue enabled;
+        public final ModConfigSpec.IntValue learningSpeed;
+        public final ModConfigSpec.IntValue forgetSpeed;
+        public final ModConfigSpec.IntValue maxAdaptationLevel;
+        public final ModConfigSpec.IntValue observationRange;
+        public final ModConfigSpec.IntValue adaptationDifficulty;
+        public final ModConfigSpec.BooleanValue persistentMemory;
+        public final ModConfigSpec.BooleanValue debugMode;
+        public final ModConfigSpec.IntValue adaptationChance;
+        public final ModConfigSpec.IntValue strategyCooldown;
+        public final ModConfigSpec.IntValue observationTime;
+        
+        CommonConfig(ModConfigSpec.Builder builder) {
+            builder.comment("Smart Mobs Configuration");
+            
+            enabled = builder
+                .comment("Enable Smart Mobs system")
+                .define("enabled", true);
+            
+            learningSpeed = builder
+                .comment("Speed of learning (1-10)")
+                .defineInRange("learningSpeed", 3, 1, 10);
+            
+            forgetSpeed = builder
+                .comment("Speed of forgetting player behavior (1-10)")
+                .defineInRange("forgetSpeed", 2, 1, 10);
+            
+            maxAdaptationLevel = builder
+                .comment("Maximum adaptation level (0-3)")
+                .defineInRange("maxAdaptationLevel", 3, 0, 3);
+            
+            observationRange = builder
+                .comment("Range in blocks for mob observation")
+                .defineInRange("observationRange", 32, 8, 64);
+            
+            adaptationDifficulty = builder
+                .comment("Difficulty of adaptations (1-5, higher = harder)")
+                .defineInRange("adaptationDifficulty", 3, 1, 5);
+            
+            persistentMemory = builder
+                .comment("Should mob memory persist between sessions")
+                .define("persistentMemory", true);
+            
+            debugMode = builder
+                .comment("Enable debug mode")
+                .define("debugMode", false);
+            
+            adaptationChance = builder
+                .comment("Chance of adaptation in percentage (0-100)")
+                .defineInRange("adaptationChance", 70, 0, 100);
+            
+            strategyCooldown = builder
+                .comment("Cooldown between strategy changes in ticks")
+                .defineInRange("strategyCooldown", 200, 50, 1000);
+            
+            observationTime = builder
+                .comment("Time to observe before adapting in ticks")
+                .defineInRange("observationTime", 100, 20, 500);
+        }
     }
-
-    private SmartMobsConfig() {}
-
-    public static boolean enabled() { return ENABLED.get(); }
-    public static double learningSpeed() { return LEARNING_SPEED.get(); }
-    public static double forgettingSpeed() { return FORGETTING_SPEED.get(); }
-    public static int maxLevel() { return MAX_LEVEL.get(); }
-    public static double difficulty() { return DIFFICULTY.get(); }
-    public static int observationRange() { return OBSERVATION_RANGE.get(); }
-    public static boolean persistent() { return PERSISTENT.get(); }
-    public static boolean debug() { return DEBUG.get(); }
-
-    public static Set<String> affectedMobs() {
-        return MOBS.get().stream().map(Object::toString).collect(Collectors.toSet());
+    
+    public static final ModConfigSpec COMMON_SPEC;
+    public static final CommonConfig COMMON;
+    
+    static {
+        var pair = new ModConfigSpec.Builder().configure(CommonConfig::new);
+        COMMON_SPEC = pair.getRight();
+        COMMON = pair.getLeft();
     }
 }

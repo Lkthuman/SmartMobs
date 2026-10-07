@@ -1,106 +1,190 @@
 package com.smartmobs.ai;
 
-import com.smartmobs.adaptation.AdaptationLevel;
-import com.smartmobs.adaptation.Strategy;
-import com.smartmobs.memory.ModAttachments;
-import com.smartmobs.memory.PlayerBehavior;
-import java.util.EnumSet;
-import net.minecraft.core.BlockPos;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.goal.Goal;
-import net.minecraft.world.entity.ai.util.DefaultRandomPos;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
+import com.smartmobs.adaptation.*;
+import com.smartmobs.memory.ModAttachments;
+import com.smartmobs.memory.PlayerBehavior;
+import com.smartmobs.config.SmartMobsConfig;
+import com.smartmobs.learning.LearningMoments;
+import java.util.*;
 
-/**
- * One reusable goal driving every strategy. Runs cheap checks only every CHECK_INTERVAL ticks,
- * and only uses information the mob legitimately has (its current target and line of sight).
- */
 public class AdaptiveGoal extends Goal {
-    private static final int CHECK_INTERVAL = 20;
-    private static final int COOLDOWN = 100;
-
+    
     private final Mob mob;
-    private final Strategy strategy;
-    private int cooldown;
-    private int timeLeft;
-    private Vec3 destination;
-
-    public AdaptiveGoal(Mob mob, Strategy strategy) {
+    private Player target;
+    private int observationTicks = 0;
+    private int learningTicks = 0;
+    private StrategyManager strategyManager;
+    private MobMemory mobMemory;
+    private int failedPathfinds = 0;
+    private int pathfindCheckTicks = 0;
+    
+    public AdaptiveGoal(Mob mob) {
         this.mob = mob;
-        this.strategy = strategy;
-        setFlags(EnumSet.of(Flag.MOVE));
+        this.strategyManager = new StrategyManager();
     }
-
-    public Strategy strategy() { return strategy; }
-
-    private int level() {
-        LivingEntity t = mob.getTarget();
-        if (!(t instanceof ServerPlayer p)) return 0;
-        PlayerBehavior b = p.getData(ModAttachments.BEHAVIOR.get());
-        return AdaptationLevel.of(b.get(strategy.stat));
-    }
-
+    
     @Override
     public boolean canUse() {
-        if (cooldown > 0) { cooldown--; return false; }
-        if (mob.tickCount % CHECK_INTERVAL != 0) return false;
-        LivingEntity target = mob.getTarget();
-        if (target == null || !target.isAlive()) return false;
-        int lvl = level();
-        if (lvl <= 0) return false;
-        if (mob.getRandom().nextFloat() > 0.25f * lvl) return false;
-        destination = computeDestination(target, lvl);
-        return destination != null;
-    }
-
-    private Vec3 computeDestination(LivingEntity target, int lvl) {
-        switch (strategy) {
-            case SEEK_COVER:
-                if (!mob.getSensing().hasLineOfSight(target)) return null;
-                return DefaultRandomPos.getPosAway(mob_pathfinder(), 8, 4, target.position());
-            case FLANK: {
-                Vec3 toTarget = target.position().subtract(mob.position()).normalize();
-                Vec3 side = new Vec3(-toTarget.z, 0, toTarget.x).scale(mob.getRandom().nextBoolean() ? 4 : -4);
-                return target.position().add(side);
-            }
-            case CAUTIOUS:
-                if (mob.getHealth() > mob.getMaxHealth() * 0.5f) return null;
-                return DefaultRandomPos.getPosAway(mob_pathfinder(), 6, 3, target.position());
-            case FIND_ALTERNATE_PATH:
-                if (mob.getNavigation().isDone() || mob.getNavigation().getPath() != null && mob.getNavigation().getPath().canReach()) return null;
-                return DefaultRandomPos.getPos(mob_pathfinder(), 10, 4);
-            case CLIMB_TOWARD:
-                if (target.getY() - mob.getY() < 2.0) return null;
-                BlockPos p = target.blockPosition();
-                return new Vec3(p.getX() + 0.5, p.getY(), p.getZ() + 0.5);
-            default:
-                return null;
+        if (!SmartMobsConfig.COMMON.enabled.get()) {
+            return false;
         }
+        
+        target = mob.getTarget();
+        if (target == null) {
+            return false;
+        }
+        
+        if (!mob.hasLineOfSight(target)) {
+            return false;
+        }
+        
+        double distance = mob.distanceTo(target);
+        if (distance > SmartMobsConfig.COMMON.observationRange.get()) {
+            return false;
+        }
+        
+        if (mobMemory == null) {
+            initializeMobMemory();
+        }
+        
+        return true;
     }
-
-    private net.minecraft.world.entity.PathfinderMob mob_pathfinder() {
-        return (net.minecraft.world.entity.PathfinderMob) mob;
-    }
-
+    
     @Override
     public void start() {
-        timeLeft = 40 + 10 * level();
-        if (destination != null) mob.getNavigation().moveTo(destination.x, destination.y, destination.z, 1.0);
+        observationTicks = 0;
+        learningTicks = 0;
+        if (mobMemory != null) {
+            mobMemory.updateLastObservation();
+            LearningMoments.observationAnimation(mob, target);
+        }
     }
-
+    
     @Override
-    public boolean canContinueToUse() {
-        return timeLeft > 0 && mob.getTarget() != null && !mob.getNavigation().isDone();
+    public void tick() {
+        if (target == null || !target.isAlive()) {
+            return;
+        }
+        
+        observationTicks++;
+        pathfindCheckTicks++;
+        
+        // Mettre à jour les données comportementales du joueur
+        PlayerBehavior behavior = getPlayerBehavior();
+        if (behavior != null) {
+            updateAdaptationLevel(behavior);
+        }
+        
+        // Vérifier si le pathfinding échoue
+        if (pathfindCheckTicks > 20) {
+            checkPathfindingFailure();
+            pathfindCheckTicks = 0;
+        }
+        
+        // Sélectionner et exécuter une stratégie
+        IntelligenceLevel intelligence = IntelligenceLevel.NORMAL;
+        AdaptationStrategy strategy = strategyManager.selectStrategy(mob, target, mobMemory, intelligence);
+        
+        if (strategy != null) {
+            if (strategy.canActivate(mob, target)) {
+                strategy.execute(mob, target);
+                
+                if (!strategy.shouldContinue(mob, target)) {
+                    strategy.onComplete(mob);
+                    strategyManager.clearStrategy();
+                }
+            }
+        }
+        
+        // Animation d'observation régulière
+        if (observationTicks % 40 == 0) {
+            LearningMoments.observationAnimation(mob, target);
+        }
+        
+        // Augmenter la progression d'apprentissage
+        if (mobMemory != null && observationTicks % 10 == 0) {
+            mobMemory.increaseLearningProgress((int)(SmartMobsConfig.COMMON.learningSpeed.get() * 1.5));
+            
+            if (mobMemory.hasLearned()) {
+                LearningMoments.adaptationFlashAnimation(mob);
+                mobMemory.resetLearning();
+            }
+        }
     }
-
-    @Override
-    public void tick() { timeLeft--; }
-
+    
     @Override
     public void stop() {
-        cooldown = COOLDOWN;
-        destination = null;
+        strategyManager.clearStrategy();
+        if (mobMemory != null) {
+            mobMemory.resetPathfindingFailures();
+        }
+    }
+    
+    @Override
+    public boolean isInterruptable() {
+        return true;
+    }
+    
+    private void initializeMobMemory() {
+        mobMemory = new MobMemory(mob.getUUID(), target.getUUID());
+    }
+    
+    private PlayerBehavior getPlayerBehavior() {
+        if (target == null) return null;
+        
+        try {
+            var attachment = target.getData(ModAttachments.PLAYER_BEHAVIOR);
+            if (attachment != null) {
+                return attachment;
+            }
+        } catch (Exception e) {
+            // Silently fail if attachment not available
+        }
+        
+        return null;
+    }
+    
+    private void updateAdaptationLevel(PlayerBehavior behavior) {
+        if (mobMemory == null) return;
+        
+        float totalBehavior = behavior.getMeleeUsage() + behavior.getRangedUsage() + 
+                             behavior.getBuildingUsage() + behavior.getHighGroundUsage();
+        
+        int newLevel = 0;
+        if (totalBehavior > 0.25f) newLevel = 1;
+        if (totalBehavior > 0.50f) newLevel = 2;
+        if (totalBehavior > 0.75f) newLevel = 3;
+        
+        mobMemory.setAdaptationLevel(Math.min(newLevel, SmartMobsConfig.COMMON.maxAdaptationLevel.get()));
+    }
+    
+    private void checkPathfindingFailure() {
+        if (!mob.getNavigation().isDone()) {
+            failedPathfinds = 0;
+            return;
+        }
+        
+        if (mob.distanceTo(target) > 2.0) {
+            failedPathfinds++;
+            
+            if (failedPathfinds > 3 && mobMemory != null) {
+                mobMemory.recordPathfindingFailure();
+                LearningMoments.failureAnimation(mob);
+                
+                if (mobMemory.getFailedPathfindingAttempts() > 5) {
+                    // Trop d'échecs, essayer une autre stratégie
+                    strategyManager.clearStrategy();
+                    mobMemory.resetPathfindingFailures();
+                }
+            }
+        }
+    }
+    
+    public MobMemory getMobMemory() {
+        return mobMemory;
     }
 }
