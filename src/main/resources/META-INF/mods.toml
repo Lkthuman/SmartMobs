@@ -1,0 +1,23 @@
+modLoader="neoforgemod"
+loaderVersion="[1,)"
+
+[[mods]]
+modId="smartmobs"
+version="1.0.0"
+displayName="Smart Mobs"
+description="Mobs learn from player behavior and adapt their strategies dynamically."
+logoFile="smartmobs.png"
+
+[[dependencies.smartmobs]]
+    modId="minecraft"
+    mandatory=true
+    versionRange="[1.21.1,1.22)"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.smartmobs]]
+    modId="neoforge"
+    mandatory=true
+    versionRange="[21.0.0-beta,)"
+    ordering="NONE"
+    side="BOTH"
