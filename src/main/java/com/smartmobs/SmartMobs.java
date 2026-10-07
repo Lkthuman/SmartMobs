@@ -5,47 +5,33 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
+import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.server.ServerStartingEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import com.smartmobs.config.SmartMobsConfig;
-import com.smartmobs.events.MobEventHandler;
-import com.smartmobs.events.PlayerEventHandler;
-import com.smartmobs.learning.LearningSystem;
-import com.smartmobs.adaptation.AdaptationManager;
-
-@Mod(SmartMobs.MOD_ID)
 public class SmartMobs {
     public static final String MOD_ID = "smartmobs";
-    public static final Logger LOGGER = LogManager.getLogger(MOD_ID);
-
-    private static LearningSystem learningSystem;
-    private static AdaptationManager adaptationManager;
+    public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
     public SmartMobs(IEventBus modEventBus, ModContainer modContainer) {
-        LOGGER.info("Smart Mobs mod initializing...");
-        
-        // Initialize systems
-        learningSystem = new LearningSystem();
-        adaptationManager = new AdaptationManager();
-        
-        // Register config
+        LOGGER.info("SmartMobs mod initializing...");
+        modEventBus.addListener(this::commonSetup);
+        NeoForge.EVENT_BUS.register(this);
         modContainer.registerConfig(ModConfig.Type.COMMON, SmartMobsConfig.SPEC);
-        
-        // Register event handlers
-        NeoForge.EVENT_BUS.register(PlayerEventHandler.class);
-        NeoForge.EVENT_BUS.register(MobEventHandler.class);
-        
-        LOGGER.info("Smart Mobs mod loaded successfully!");
     }
 
-    public static LearningSystem getLearningSystem() {
-        return learningSystem;
+    private void commonSetup(final FMLCommonSetupEvent event) {
+        LOGGER.info("Common setup for SmartMobs");
     }
 
-    public static AdaptationManager getAdaptationManager() {
-        return adaptationManager;
+    @Mod.EventBusSubscriber(modid = MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
+    public static class ServerEvents {
+        @net.neoforged.neoforge.api.distmarker.OnlyIn(Dist.DEDICATED_SERVER)
+        public static void onServerStarting(ServerStartingEvent event) {
+            LOGGER.info("SmartMobs server starting");
+        }
     }
 }

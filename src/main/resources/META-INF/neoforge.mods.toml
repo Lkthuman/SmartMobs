@@ -1,0 +1,14 @@
+modLoader="javafxmod"
+loaderVersion="[1,)"
+license="MIT"
+
+[[mods]]
+modId="smartmobs"
+version="1.0.0"
+displayName="Smart Mobs"
+displayURL="https://github.com/Lkthuman/SmartMobs"
+displayTest="IGNORE_SERVER_VERSION"
+logoFile="logo.png"
+auths=["YourName"]
+contacts={homepage="https://github.com/Lkthuman/SmartMobs", issues="https://github.com/Lkthuman/SmartMobs/issues"}
+description="""Mobs learn and adapt to player strategies in real-time."""

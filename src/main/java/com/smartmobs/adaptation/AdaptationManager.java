@@ -1,57 +1,24 @@
 package com.smartmobs.adaptation;
 
-import java.util.*;
-import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class AdaptationManager {
-    private Map<Integer, MobAdaptationData> mobAdaptations = new HashMap<>();
+    private static final Map<LivingEntity, MobAdaptation> mobAdaptations = new HashMap<>();
 
-    public MobAdaptationData getOrCreateAdaptation(Mob mob) {
-        int id = mob.getId();
-        return mobAdaptations.computeIfAbsent(id, k -> new MobAdaptationData(mob));
+    public static MobAdaptation getMobAdaptation(LivingEntity mob) {
+        return mobAdaptations.computeIfAbsent(mob, m -> new MobAdaptation(m));
     }
 
-    public void updateAdaptation(Mob mob, Player player) {
-        MobAdaptationData data = getOrCreateAdaptation(mob);
-        data.update(player);
+    public static void updateMobAdaptation(LivingEntity mob, Player player) {
+        MobAdaptation adaptation = getMobAdaptation(mob);
+        adaptation.update(player);
     }
 
-    public static class MobAdaptationData {
-        private final Mob mob;
-        private int adaptationLevel = 0;
-        private String currentStrategy = "NONE";
-        private long strategyCooldown = 0;
-        private Map<String, Integer> strategyFailures = new HashMap<>();
-
-        public MobAdaptationData(Mob mob) {
-            this.mob = mob;
-        }
-
-        public void update(Player player) {
-            if (player == null) return;
-            
-            // Cooldown management
-            if (strategyCooldown > 0) {
-                strategyCooldown--;
-            }
-            
-            // Adaptation logic would go here
-            double distance = mob.distanceTo(player);
-            boolean playerHigher = player.getY() > mob.getY() + 2;
-            
-            if (playerHigher && distance < 20) {
-                adaptationLevel = Math.min(3, adaptationLevel + 1);
-                currentStrategy = "ANTI_HIGH_GROUND";
-            }
-        }
-
-        public int getAdaptationLevel() {
-            return adaptationLevel;
-        }
-
-        public String getCurrentStrategy() {
-            return currentStrategy;
-        }
+    public static void cleanup(LivingEntity mob) {
+        mobAdaptations.remove(mob);
     }
 }

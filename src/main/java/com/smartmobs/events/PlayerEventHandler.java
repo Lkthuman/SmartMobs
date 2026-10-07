@@ -1,26 +1,29 @@
 package com.smartmobs.events;
 
-import net.neoforged.neoforge.event.entity.player.ProjectileEvent;
-import net.neoforged.neoforge.event.entity.player.AttackEntityEvent;
+import com.smartmobs.learning.LearningSystem;
+import com.smartmobs.learning.PlayerAction;
+import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.neoforge.event.entity.living.LivingAttackEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.minecraft.world.entity.player.Player;
 
-import com.smartmobs.SmartMobs;
-import com.smartmobs.learning.LearningSystem.PlayerAction;
-
+@Mod.EventBusSubscriber(modid = "smartmobs", bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class PlayerEventHandler {
-
+    
     @SubscribeEvent
-    public static void onProjectileFired(ProjectileEvent.CriticalHit event) {
-        if (event.getProjectile() != null && event.getProjectile().getOwner() instanceof Player player) {
-            SmartMobs.getLearningSystem().recordPlayerAction(player, new PlayerAction("ranged_attack"));
+    public static void onPlayerAttack(LivingAttackEvent event) {
+        if (event.getSource().getEntity() instanceof Player player) {
+            if (event.getEntity() instanceof net.minecraft.world.entity.Monster) {
+                // Record player action
+                LearningSystem.recordPlayerAction(player, PlayerAction.MELEE_ATTACK);
+            }
         }
     }
 
     @SubscribeEvent
-    public static void onAttackEntity(AttackEntityEvent event) {
-        if (event.getEntity() instanceof Player player) {
-            SmartMobs.getLearningSystem().recordPlayerAction(player, new PlayerAction("melee_attack"));
-        }
+    public static void onPlayerLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
+        LearningSystem.cleanup(event.getEntity());
     }
 }
